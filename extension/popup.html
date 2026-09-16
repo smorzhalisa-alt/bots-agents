@@ -85,7 +85,11 @@
 
         .marks-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
         .marks-row .subj { font-size: 12px; font-weight: 600; min-width: 80px; }
-        .marks-row .vals { display: flex; flex-wrap: wrap; gap: 2px; }
+        .marks-row .vals { display: flex; flex-wrap: wrap; gap: 2px; flex: 1; }
+        .marks-row .avg { font-size: 12px; font-weight: 700; color: var(--accent); min-width: 28px; text-align: right; }
+
+        .item.done { opacity: 0.5; }
+        .item.done .item-desc { text-decoration: line-through; }
 
         .btn {
             background: var(--accent);
@@ -142,7 +146,8 @@
     <div id="raw" class="raw-dump"></div>
 
     <footer>
-        <button class="btn-sm" id="show-raw">Raw data</button>
+        <button class="btn-sm" id="show-raw">Raw</button>
+        <button class="btn-sm" id="export-btn">Export JSON</button>
         <button class="btn-sm" id="clear-btn">Clear</button>
     </footer>
 
