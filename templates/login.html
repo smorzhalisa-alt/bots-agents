@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Goose — Вход</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="login-body">
+    <div class="login-card">
+        <div class="login-logo">🪿</div>
+        <h1>Goose School</h1>
+        <p class="login-subtitle">Войди через Госуслуги</p>
+
+        <!-- Step 1: Credentials -->
+        <form id="cred-form" class="login-step active">
+            <input type="text" id="username" placeholder="Логин Госуслуг" autocomplete="username" required>
+            <input type="password" id="password" placeholder="Пароль" autocomplete="current-password" required>
+            <button type="submit">Войти</button>
+        </form>
+
+        <!-- Step 2: Captcha -->
+        <form id="captcha-form" class="login-step">
+            <div id="captcha-prompt"></div>
+            <img id="captcha-img" style="display:none; max-width:100%; border-radius:8px; margin:12px 0">
+            <input type="text" id="captcha-answer" placeholder="Ответ на капчу" required>
+            <button type="submit">Отправить</button>
+        </form>
+
+        <!-- Step 3: SMS -->
+        <form id="sms-form" class="login-step">
+            <p id="sms-prompt"></p>
+            <input type="text" id="sms-code" placeholder="Код из СМС" inputmode="numeric" required>
+            <button type="submit">Подтвердить</button>
+        </form>
+
+        <div id="error-msg" class="error" style="display:none"></div>
+        <div id="spinner" class="spinner" style="display:none">
+            <div class="spinner-ring"></div>
+            <span>Подключаемся…</span>
+        </div>
+    </div>
+
+    <script>
+        const $ = s => document.querySelector(s);
+
+        function showStep(id) {
+            document.querySelectorAll('.login-step').forEach(el => el.classList.remove('active'));
+            if (id) $(id).classList.add('active');
+        }
+
+        function showError(msg) {
+            const el = $('#error-msg');
+            el.textContent = msg;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+
+        function setLoading(on) {
+            $('#spinner').style.display = on ? 'flex' : 'none';
+            document.querySelectorAll('button').forEach(b => b.disabled = on);
+        }
+
+        async function post(url, body) {
+            setLoading(true);
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body),
+                });
+                const data = await res.json();
+                handleResult(data);
+            } catch (e) {
+                showError('Ошибка сети: ' + e.message);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function handleResult(data) {
+            if (data.status === 'ok') {
+                window.location.href = '/';
+                return;
+            }
+            if (data.status === 'captcha') {
+                showStep('#captcha-form');
+                if (data.type === 'image') {
+                    $('#captcha-img').src = 'data:image/png;base64,' + data.image;
+                    $('#captcha-img').style.display = 'block';
+                    $('#captcha-prompt').textContent = 'Введи текст с картинки:';
+                } else {
+                    $('#captcha-img').style.display = 'none';
+                    $('#captcha-prompt').textContent = data.question;
+                }
+                return;
+            }
+            if (data.status === 'sms') {
+                showStep('#sms-form');
+                $('#sms-prompt').textContent = `Код отправлен на ${data.contact} (${data.attempts} попыток)`;
+                return;
+            }
+            if (data.status === 'error') {
+                showError(data.message);
+                return;
+            }
+            showError('Неизвестный ответ');
+        }
+
+        $('#cred-form').addEventListener('submit', e => {
+            e.preventDefault();
+            post('/api/login', {
+                username: $('#username').value,
+                password: $('#password').value,
+            });
+        });
+
+        $('#captcha-form').addEventListener('submit', e => {
+            e.preventDefault();
+            post('/api/captcha', { answer: $('#captcha-answer').value });
+        });
+
+        $('#sms-form').addEventListener('submit', e => {
+            e.preventDefault();
+            post('/api/sms', { code: $('#sms-code').value });
+        });
+    </script>
+</body>
+</html>

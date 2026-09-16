@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Goose — Дневник</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <div class="header-left">
+            <span class="logo">🪿</span>
+            <h1>Goose School</h1>
+        </div>
+        <div class="header-right">
+            <span class="student-name">{{ name }}</span>
+            <button id="refresh-btn" class="btn-icon" title="Обновить">↻</button>
+            <button id="logout-btn" class="btn-icon" title="Выйти">⏻</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Today's Schedule -->
+        <section class="card">
+            <div class="card-header">
+                <h2>📅 Расписание на сегодня</h2>
+                <div class="date-nav">
+                    <button id="prev-day" class="btn-sm">←</button>
+                    <span id="schedule-date"></span>
+                    <button id="next-day" class="btn-sm">→</button>
+                </div>
+            </div>
+            <div id="schedule-list" class="schedule-list">
+                <div class="loading">Загрузка…</div>
+            </div>
+        </section>
+
+        <!-- Homework -->
+        <section class="card">
+            <h2>📝 Домашние задания</h2>
+            <div id="homework-list" class="homework-list">
+                <div class="loading">Загрузка…</div>
+            </div>
+        </section>
+
+        <!-- Recent Marks -->
+        <section class="card">
+            <h2>📊 Оценки за месяц</h2>
+            <div id="marks-list" class="marks-list">
+                <div class="loading">Загрузка…</div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let currentDate = new Date();
+
+        function fmt(d) {
+            return d.toISOString().slice(0, 10);
+        }
+
+        function fmtDisplay(d) {
+            const days = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+            const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+            return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
+        }
+
+        function fmtTime(iso) {
+            if (!iso) return '';
+            const d = new Date(iso);
+            if (isNaN(d)) {
+                const m = iso.match(/(\d{2}):(\d{2})/);
+                return m ? m[0] : iso;
+            }
+            return d.toLocaleTimeString('ru', {hour:'2-digit', minute:'2-digit'});
+        }
+
+        async function loadSchedule() {
+            const el = document.getElementById('schedule-list');
+            document.getElementById('schedule-date').textContent = fmtDisplay(currentDate);
+
+            try {
+                const res = await fetch(`/api/schedule?date=${fmt(currentDate)}`);
+                if (res.status === 401) { window.location.href = '/login'; return; }
+                const text = await res.text();
+                let items;
+                try { items = JSON.parse(text); } catch { el.innerHTML = '<div class="empty">Ошибка загрузки</div>'; return; }
+
+                if (items.error) { el.innerHTML = `<div class="empty">${items.error}</div>`; return; }
+                if (!items.length) { el.innerHTML = '<div class="empty">Нет уроков</div>'; return; }
+
+                el.innerHTML = items.map(ev => `
+                    <div class="schedule-item ${ev.cancelled ? 'cancelled' : ''}">
+                        <div class="time">${fmtTime(ev.start)} — ${fmtTime(ev.end)}</div>
+                        <div class="subject">${esc(ev.subject)}</div>
+                        <div class="meta">
+                            ${ev.room ? `<span class="room">каб. ${esc(ev.room)}</span>` : ''}
+                            ${ev.theme ? `<span class="theme">${esc(ev.theme)}</span>` : ''}
+                        </div>
+                        ${ev.homework ? `<div class="inline-hw">ДЗ: ${esc(ev.homework)}</div>` : ''}
+                        ${ev.marks.length ? `<div class="inline-marks">${ev.marks.map(m =>
+                            `<span class="mark mark-${m.value}">${m.value}</span>`
+                        ).join('')}</div>` : ''}
+                    </div>
+                `).join('');
+            } catch (e) {
+                el.innerHTML = `<div class="empty">Ошибка: ${e.message}</div>`;
+            }
+        }
+
+        async function loadHomework() {
+            const el = document.getElementById('homework-list');
+            try {
+                const res = await fetch('/api/homework');
+                if (res.status === 401) { window.location.href = '/login'; return; }
+                const text = await res.text();
+                let items;
+                try { items = JSON.parse(text); } catch { el.innerHTML = '<div class="empty">Ошибка загрузки</div>'; return; }
+
+                if (items.error) { el.innerHTML = `<div class="empty">${items.error}</div>`; return; }
+                if (!items.length) { el.innerHTML = '<div class="empty">Нет заданий на неделю</div>'; return; }
+
+                const byDate = {};
+                items.forEach(h => {
+                    const d = h.date || 'Без даты';
+                    if (!byDate[d]) byDate[d] = [];
+                    byDate[d].push(h);
+                });
+
+                el.innerHTML = Object.entries(byDate).map(([date, hws]) => `
+                    <div class="hw-group">
+                        <div class="hw-date">${date}</div>
+                        ${hws.map(h => `
+                            <div class="hw-item ${h.is_done ? 'done' : ''}">
+                                <div class="hw-subject">${esc(h.subject)}</div>
+                                <div class="hw-desc">${esc(h.description)}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('');
+            } catch (e) {
+                el.innerHTML = `<div class="empty">Ошибка: ${e.message}</div>`;
+            }
+        }
+
+        async function loadMarks() {
+            const el = document.getElementById('marks-list');
+            try {
+                const res = await fetch('/api/marks');
+                if (res.status === 401) { window.location.href = '/login'; return; }
+                const text = await res.text();
+                let items;
+                try { items = JSON.parse(text); } catch { el.innerHTML = '<div class="empty">Ошибка загрузки</div>'; return; }
+
+                if (items.error) { el.innerHTML = `<div class="empty">${items.error}</div>`; return; }
+                if (!items.length) { el.innerHTML = '<div class="empty">Нет оценок</div>'; return; }
+
+                const bySubject = {};
+                items.forEach(m => {
+                    const s = m.subject || '?';
+                    if (!bySubject[s]) bySubject[s] = [];
+                    bySubject[s].push(m);
+                });
+
+                el.innerHTML = Object.entries(bySubject).map(([subj, ms]) => `
+                    <div class="marks-row">
+                        <span class="marks-subject">${esc(subj)}</span>
+                        <div class="marks-values">
+                            ${ms.map(m => `<span class="mark mark-${m.value}" title="${esc(m.control_form || '')} ${m.date || ''}">${m.value}</span>`).join('')}
+                        </div>
+                        <span class="marks-avg">${avg(ms)}</span>
+                    </div>
+                `).join('');
+            } catch (e) {
+                el.innerHTML = `<div class="empty">Ошибка: ${e.message}</div>`;
+            }
+        }
+
+        function avg(marks) {
+            const nums = marks.map(m => parseFloat(m.value)).filter(v => !isNaN(v));
+            if (!nums.length) return '';
+            const w = marks.filter(m => !isNaN(parseFloat(m.value)));
+            let sum = 0, wt = 0;
+            w.forEach(m => {
+                const v = parseFloat(m.value);
+                const weight = m.weight || 1;
+                sum += v * weight;
+                wt += weight;
+            });
+            return (sum / wt).toFixed(2);
+        }
+
+        function esc(s) {
+            if (!s) return '';
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        function refreshAll() {
+            loadSchedule();
+            loadHomework();
+            loadMarks();
+        }
+
+        document.getElementById('prev-day').addEventListener('click', () => {
+            currentDate.setDate(currentDate.getDate() - 1);
+            loadSchedule();
+        });
+
+        document.getElementById('next-day').addEventListener('click', () => {
+            currentDate.setDate(currentDate.getDate() + 1);
+            loadSchedule();
+        });
+
+        document.getElementById('refresh-btn').addEventListener('click', refreshAll);
+
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            await fetch('/api/logout', {method:'POST'});
+            window.location.href = '/login';
+        });
+
+        refreshAll();
+    </script>
+</body>
+</html>
