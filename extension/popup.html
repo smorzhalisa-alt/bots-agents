@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <style>
+        :root {
+            --bg: #0d0d12;
+            --card: #16161e;
+            --input: #1e1e28;
+            --border: #2a2a3a;
+            --text: #e8e6f0;
+            --dim: #8888a0;
+            --accent: #ff5c8a;
+            --green: #3ddc84;
+            --blue: #5e9eff;
+            --yellow: #ffc83d;
+            --red: #e8364e;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            width: 380px;
+            min-height: 200px;
+            max-height: 560px;
+            overflow-y: auto;
+            background: var(--bg);
+            color: var(--text);
+            font: 13px/1.5 -apple-system, 'Segoe UI', system-ui, sans-serif;
+            padding: 16px;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        header h1 { font-size: 15px; }
+        .status { font-size: 11px; color: var(--dim); }
+        .status.active { color: var(--green); }
+
+        .section { margin-bottom: 14px; }
+        .section-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--accent);
+            margin-bottom: 6px;
+        }
+
+        .empty { color: var(--dim); font-size: 12px; padding: 8px 0; }
+
+        .item {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-bottom: 4px;
+        }
+
+        .item-subject { font-weight: 600; font-size: 13px; }
+        .item-desc { font-size: 12px; color: var(--dim); margin-top: 2px; }
+        .item-date { font-size: 11px; color: var(--blue); }
+
+        .mark {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px; height: 24px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 700;
+            background: var(--input);
+            margin: 1px;
+        }
+        .mark-5 { color: var(--green); border: 1px solid var(--green); }
+        .mark-4 { color: var(--blue); border: 1px solid var(--blue); }
+        .mark-3 { color: var(--yellow); border: 1px solid var(--yellow); }
+        .mark-2 { color: var(--red); border: 1px solid var(--red); }
+
+        .marks-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+        .marks-row .subj { font-size: 12px; font-weight: 600; min-width: 80px; }
+        .marks-row .vals { display: flex; flex-wrap: wrap; gap: 2px; }
+
+        .btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 14px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-sm {
+            background: var(--input);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            font-size: 11px;
+        }
+
+        footer {
+            display: flex;
+            justify-content: space-between;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+        }
+
+        .raw-dump {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px;
+            font-size: 11px;
+            color: var(--dim);
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            display: none;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🪿 Goose School</h1>
+        <span id="status" class="status">waiting</span>
+    </header>
+
+    <div id="content">
+        <div class="empty">Open Моя Школа and browse your diary — data will appear here automatically.</div>
+    </div>
+
+    <div id="raw" class="raw-dump"></div>
+
+    <footer>
+        <button class="btn-sm" id="show-raw">Raw data</button>
+        <button class="btn-sm" id="clear-btn">Clear</button>
+    </footer>
+
+    <script src="popup.js"></script>
+</body>
+</html>

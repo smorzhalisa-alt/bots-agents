@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Goose School",
+  "version": "1.0",
+  "description": "Captures homework, schedule, and marks from Моя Школа",
+  "permissions": ["storage"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon48.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://myschool.edu.ru/*",
+        "*://*.myschool.edu.ru/*",
+        "*://dnevnik.mos.ru/*",
+        "*://*.dnevnik.mos.ru/*",
+        "*://school.mos.ru/*",
+        "*://*.school.mos.ru/*",
+        "*://authedu.mosreg.ru/*",
+        "*://*.authedu.mosreg.ru/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "icons": {
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
